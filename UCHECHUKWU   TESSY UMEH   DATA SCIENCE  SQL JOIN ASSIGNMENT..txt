@@ -1,0 +1,167 @@
+Qs 1... \* Write an SQL query to find the names and emails of all customers who rented a movie in february 2005, and sort the result by last name in ascending order */
+       
+      SELECT
+   c.first_name, c.last_name,c.email,
+   r.rental_date
+FROM
+     customer AS c
+LEFT JOIN  rental AS r
+ON c.customer_id = r.customer_id
+WHERE
+      EXTRACT(year FROM r.rental_date) = '2005'
+AND 
+     
+      EXTRACT(month FROM r.rental_date) = '02'
+ORDER BY 
+         c.last_name ASC;
+
+
+
+Qs  2....\* Write an SQL query to count the number of movies in the "Action" genre that were rented more than 10 times, and display the result in descending order */
+
+SELECT
+  ca."name",
+  fi.title,
+  COUNT(DISTINCT r.customer_id)
+FROM
+  category AS ca
+  LEFT JOIN
+  film_category AS f
+  ON f.category_id = ca.category_id
+  LEFT JOIN
+  film AS fi
+  ON fi.film_id = f.film_id
+  LEFT JOIN
+  inventory as i
+  ON i.film_id = fi.film_id
+  LEFT JOIN
+  rental as r
+  ON r.inventory_id = i.inventory_id
+WHERE
+	ca."name" = 'Action'
+GROUP BY
+	ca."name",
+	fi.title
+HAVING
+	COUNT(DISTINCT r.customer_id) > 10
+ORDER BY
+	COUNT(DISTINCT r.customer_id) DESC;
+
+
+
+Qs  3.... \*Write an SQL query to find the names of all customer who rented more than 30 movies in total and the total amount they paid for all their rentals, sorted by the total amount paid in descending order */
+
+
+SELECT
+  c.customer_id,
+  c.first_name,
+  c.last_name
+  SUM(p.amount)AS total_amount_paid
+FROM
+  customer AS c
+  LEFT JOIN
+  rental AS r
+  ON r.customer_id = c.customer_id
+  LEFT JOIN
+  payment AS p
+  ON p.rental_id = r.rental_id
+GROUP BY
+	c.customer_id
+HAVING
+	COUNT(r.customer_id) > 30
+ORDER BY
+	total_amount_paid DESC;
+
+
+
+
+Qs  4...\* Write an SQL query to find the titles of all movies that were rented by more than 100 customers, along with the number of customers who rented them, sorted by the number of customers in descending order */
+
+SELECT
+	f.title,
+	COUNT(DISTINCT r.customer_id) AS customer_no
+FROM
+  film AS f
+  LEFT JOIN
+  inventory AS i
+  ON i.film_id = f.film_id
+  LEFT JOIN
+  rental AS r
+  ON r.inventory_id = i.inventory_id
+  LEFT JOIN
+  customer AS c
+  ON c.customer_id = r.customer_id
+GROUP BY
+	f.title
+HAVING
+	COUNT(DISTINCT r.customer_id) > 100
+ORDER BY
+	customer_no DESC;
+
+
+Qs  5....\* Write an SQL query to find the movie categories that have the highest and lowest average rental rates inthe store, and calculate the difference in average rental rates between these categories*/
+
+
+--HIGHEST AND LOWEST AVERAGE RENTAL RATE
+SELECT
+  c."name",
+  AVG(fi.rental_rate) AS avg_rental_rate
+FROM
+  category AS c
+  LEFT JOIN
+  film_category AS f
+  ON f.category_id = c.category_id
+  LEFT JOIN
+  film AS fi
+  ON fi.film_id = f.film_id
+GROUP BY
+	c."name"
+HAVING
+	AVG(fi.rental_rate) = (SELECT MIN(avg_rental_rate) AS MIN
+  FROM(SELECT
+      c."name",
+      AVG(fi.rental_rate) AS avg_rental_rate
+    FROM
+      category AS c
+      LEFT JOIN
+      film_category AS f
+      ON f.category_id = c.category_id
+      LEFT JOIN
+      film AS fi
+      ON fi.film_id = f.film_id
+    GROUP BY
+	c."name"
+	)AS t)
+  OR
+  AVG(fi.rental_rate) = (SELECT MAX(avg_rental_rate) AS MAX
+  FROM(SELECT
+      c."name",
+      AVG(fi.rental_rate) AS avg_rental_rate
+    FROM
+      category AS c
+      LEFT JOIN
+      film_category AS f
+      ON f.category_id = c.category_id
+      LEFT JOIN
+      film AS fi
+      ON fi.film_id = f.film_id
+    GROUP BY
+	c."name"
+	)AS t);
+
+--DIFFERENCE BETWEEN HIGHEST AND LOWEST AVERAGE 
+SELECT
+  MAX(avg_rental_rate) - MIN(avg_rental_rate) AS rental_rate_difference
+FROM(SELECT
+    c."name",
+    AVG(fi.rental_rate) AS avg_rental_rate
+  FROM
+    category AS c
+    LEFT JOIN
+    film_category AS f
+    ON f.category_id = c.category_id
+    LEFT JOIN
+    film AS fi
+    ON fi.film_id = f.film_id
+  GROUP BY
+	c."name") AS t;
